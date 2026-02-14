@@ -29,6 +29,9 @@ void _ads126x_delay(uint16_t ms);
 // get current time in milliseconds
 unsigned long _ads126x_millis();
 
+// Interrupt modes
+#define ADS126X_INTERRUPT_FALLING 2  // Trigger on falling edge (DRDY goes LOW)
+
 // attach/detach interrupt on a pin
 void _ads126x_attach_interrupt(uint8_t pin, void (*callback)(void), int mode);
 void _ads126x_detach_interrupt(uint8_t pin);

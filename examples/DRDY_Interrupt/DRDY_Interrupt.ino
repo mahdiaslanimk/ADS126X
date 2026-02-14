@@ -64,7 +64,8 @@ void loop() {
   // - Return 0 if timeout occurs
   int32_t voltage = adc.readADC1_DRDY(pos_pin, neg_pin);
   
-  if (voltage == 0) {
+  // Check if timeout occurred (more reliable than checking for 0)
+  if (adc.drdyTimedOut()) {
     Serial.println("Warning: DRDY timeout occurred!");
   } else {
     Serial.print("ADC1 Reading: ");

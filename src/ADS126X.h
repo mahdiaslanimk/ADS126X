@@ -39,6 +39,7 @@ class ADS126X {
     void setDRDYTimeout(unsigned long timeout_ms);
     void enableInterruptMode(void);
     void disableInterruptMode(void);
+    bool drdyTimedOut(void); // check if last DRDY read timed out
     // Calibration Functions
     void calibrateSysOffsetADC1(uint8_t shorted1,uint8_t shorted2);
     void calibrateGainADC1(uint8_t vcc_pin,uint8_t gnd_pin);
@@ -125,6 +126,7 @@ class ADS126X {
     volatile bool dataReady = false; // flag set by interrupt
     unsigned long drdy_timeout_ms = 1000; // default timeout in milliseconds
     bool interrupt_enabled = false; // track if interrupt mode is enabled
+    bool drdy_timeout_occurred = false; // flag to track if last read timed out
 
     ADS126X_STATUS_Type STATUS; // save last status and checksum values
     uint8_t CHECKSUM;

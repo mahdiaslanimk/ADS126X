@@ -503,7 +503,7 @@ void ADS126X::enableInterruptMode() {
   dataReady = false;
   _isr_instance = this; // set static instance pointer
   // Attach interrupt on falling edge (DRDY goes LOW when data ready)
-  _ads126x_attach_interrupt(drdy_pin, _drdy_isr, 2); // 2 = FALLING
+  _ads126x_attach_interrupt(drdy_pin, _drdy_isr, ADS126X_INTERRUPT_FALLING);
 }
 
 void ADS126X::disableInterruptMode() {
@@ -519,28 +519,37 @@ void ADS126X::_drdy_isr() {
   }
 }
 
+bool ADS126X::drdyTimedOut() {
+  return drdy_timeout_occurred;
+}
+
 int32_t ADS126X::readADC1_DRDY(uint8_t pos_pin, uint8_t neg_pin) {
   if(!drdy_used) {
     // If DRDY pin not configured, just call regular read
     return readADC1(pos_pin, neg_pin);
   }
 
+  drdy_timeout_occurred = false; // clear timeout flag
   unsigned long start_time = _ads126x_millis();
   
   if(interrupt_enabled) {
     // Wait for interrupt flag
     while(!dataReady) {
       if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
         return 0; // timeout
       }
+      _ads126x_delay(1); // small delay to avoid busy-wait
     }
     dataReady = false; // clear flag
   } else {
     // Poll DRDY pin
     while(!isDataReady()) {
       if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
         return 0; // timeout
       }
+      _ads126x_delay(1); // small delay to avoid busy-wait
     }
   }
   
@@ -553,22 +562,27 @@ int32_t ADS126X::readADC2_DRDY(uint8_t pos_pin, uint8_t neg_pin) {
     return readADC2(pos_pin, neg_pin);
   }
 
+  drdy_timeout_occurred = false; // clear timeout flag
   unsigned long start_time = _ads126x_millis();
   
   if(interrupt_enabled) {
     // Wait for interrupt flag
     while(!dataReady) {
       if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
         return 0; // timeout
       }
+      _ads126x_delay(1); // small delay to avoid busy-wait
     }
     dataReady = false; // clear flag
   } else {
     // Poll DRDY pin
     while(!isDataReady()) {
       if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
         return 0; // timeout
       }
+      _ads126x_delay(1); // small delay to avoid busy-wait
     }
   }
   

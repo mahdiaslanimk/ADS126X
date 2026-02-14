@@ -31,11 +31,12 @@ Use `readADC1_DRDY()` or `readADC2_DRDY()` to wait for data ready before reading
 
 ```cpp
 void loop() {
-  // This will poll the DRDY pin and wait until it goes LOW
+  // Read ADC1 with DRDY wait (polling mode)
+  // This will poll the DRDY pin until it goes LOW (data ready)
   int32_t value = adc.readADC1_DRDY(0, 1);  // pos_pin=0, neg_pin=1
   
-  if (value == 0) {
-    // Timeout occurred
+  // Check if timeout occurred (more reliable than checking for 0)
+  if (adc.drdyTimedOut()) {
     Serial.println("Timeout!");
   } else {
     Serial.println(value);
@@ -60,7 +61,13 @@ void setup() {
 void loop() {
   // In interrupt mode, readADC1_DRDY() waits for the interrupt flag
   int32_t value = adc.readADC1_DRDY(0, 1);
-  Serial.println(value);
+  
+  if (adc.drdyTimedOut()) {
+    Serial.println("Timeout!");
+  } else {
+    Serial.println(value);
+  }
+  
   delay(1000);
 }
 ```
@@ -103,7 +110,7 @@ Disables interrupt mode and detaches the interrupt handler.
 #### `int32_t readADC1_DRDY(uint8_t pos_pin, uint8_t neg_pin)`
 Reads ADC1 with DRDY wait (polling or interrupt mode).
 - Waits for DRDY to go LOW before reading
-- Returns 0 if timeout occurs
+- Returns 0 if timeout occurs (use `drdyTimedOut()` to distinguish from actual zero reading)
 - Falls back to regular `readADC1()` if DRDY pin not configured
 
 #### `int32_t readADC2_DRDY(uint8_t pos_pin, uint8_t neg_pin)`
@@ -114,6 +121,12 @@ Reads ADC2 with DRDY wait (polling or interrupt mode).
 Checks if data is ready by reading the DRDY pin.
 - Returns `true` if DRDY is LOW (data ready)
 - Returns `false` if DRDY is HIGH (data not ready) or DRDY pin not configured
+
+#### `bool drdyTimedOut(void)`
+Checks if the last DRDY read operation timed out.
+- Returns `true` if the last `readADC1_DRDY()` or `readADC2_DRDY()` timed out
+- Returns `false` if the last read completed successfully
+- Use this to distinguish between timeout (returns 0) and actual zero reading
 
 ## Hardware Connections
 
