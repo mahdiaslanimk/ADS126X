@@ -4,6 +4,9 @@
 
 /*!< Some initial setup */
 
+// Initialize static instance pointer for ISR
+ADS126X* ADS126X::_isr_instance = nullptr;
+
 ADS126X::ADS126X() {
 }
 
@@ -30,6 +33,12 @@ void ADS126X::setStartPin(uint8_t pin) {
   start_pin = pin;
   _ads126x_setup_output(start_pin);
   _ads126x_write_pin_low(start_pin);
+}
+
+void ADS126X::setDRDYPin(uint8_t pin) {
+  drdy_used = true;
+  drdy_pin = pin;
+  _ads126x_setup_input(drdy_pin);
 }
 
 /*!< Regular ADC Commands    */
@@ -474,6 +483,110 @@ bool ADS126X::gpioRead(uint8_t pin) {
   ADS126X::readRegister(ADS126X_GPIODAT); // read register
   uint8_t mask = 1<<pin;
   return (REGISTER.GPIODAT.reg & mask);
+}
+
+/*!< DRDY Functions          */
+
+bool ADS126X::isDataReady() {
+  if(!drdy_used) return false;
+  // DRDY goes LOW when data is ready
+  return (_ads126x_read_pin(drdy_pin) == 0);
+}
+
+void ADS126X::setDRDYTimeout(unsigned long timeout_ms) {
+  drdy_timeout_ms = timeout_ms;
+}
+
+void ADS126X::enableInterruptMode() {
+  if(!drdy_used) return; // can't enable interrupt if DRDY pin not configured
+  interrupt_enabled = true;
+  dataReady = false;
+  _isr_instance = this; // set static instance pointer
+  // Attach interrupt on falling edge (DRDY goes LOW when data ready)
+  _ads126x_attach_interrupt(drdy_pin, _drdy_isr, ADS126X_INTERRUPT_FALLING);
+}
+
+void ADS126X::disableInterruptMode() {
+  if(!drdy_used) return;
+  interrupt_enabled = false;
+  _ads126x_detach_interrupt(drdy_pin);
+  _isr_instance = nullptr;
+}
+
+void ADS126X::_drdy_isr() {
+  if(_isr_instance) {
+    _isr_instance->dataReady = true;
+  }
+}
+
+bool ADS126X::drdyTimedOut() {
+  return drdy_timeout_occurred;
+}
+
+int32_t ADS126X::readADC1_DRDY(uint8_t pos_pin, uint8_t neg_pin) {
+  if(!drdy_used) {
+    // If DRDY pin not configured, just call regular read
+    return readADC1(pos_pin, neg_pin);
+  }
+
+  drdy_timeout_occurred = false; // clear timeout flag
+  unsigned long start_time = _ads126x_millis();
+  
+  if(interrupt_enabled) {
+    // Wait for interrupt flag
+    while(!dataReady) {
+      if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
+        return 0; // timeout
+      }
+      _ads126x_delay(1); // small delay to avoid busy-wait
+    }
+    dataReady = false; // clear flag
+  } else {
+    // Poll DRDY pin
+    while(!isDataReady()) {
+      if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
+        return 0; // timeout
+      }
+      _ads126x_delay(1); // small delay to avoid busy-wait
+    }
+  }
+  
+  return readADC1(pos_pin, neg_pin);
+}
+
+int32_t ADS126X::readADC2_DRDY(uint8_t pos_pin, uint8_t neg_pin) {
+  if(!drdy_used) {
+    // If DRDY pin not configured, just call regular read
+    return readADC2(pos_pin, neg_pin);
+  }
+
+  drdy_timeout_occurred = false; // clear timeout flag
+  unsigned long start_time = _ads126x_millis();
+  
+  if(interrupt_enabled) {
+    // Wait for interrupt flag
+    while(!dataReady) {
+      if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
+        return 0; // timeout
+      }
+      _ads126x_delay(1); // small delay to avoid busy-wait
+    }
+    dataReady = false; // clear flag
+  } else {
+    // Poll DRDY pin
+    while(!isDataReady()) {
+      if(_ads126x_millis() - start_time > drdy_timeout_ms) {
+        drdy_timeout_occurred = true;
+        return 0; // timeout
+      }
+      _ads126x_delay(1); // small delay to avoid busy-wait
+    }
+  }
+  
+  return readADC2(pos_pin, neg_pin);
 }
 
 /*!< Backend commands     */

@@ -53,4 +53,19 @@ void _ads126x_delay(uint16_t ms) {
   delay(ms);
 }
 
+// get current time in milliseconds
+unsigned long _ads126x_millis() {
+  return millis();
+}
+
+// attach interrupt on a pin
+void _ads126x_attach_interrupt(uint8_t pin, void (*callback)(void), int mode) {
+  attachInterrupt(digitalPinToInterrupt(pin), callback, mode);
+}
+
+// detach interrupt from a pin
+void _ads126x_detach_interrupt(uint8_t pin) {
+  detachInterrupt(digitalPinToInterrupt(pin));
+}
+
 #endif // ifdef ARDUINO
