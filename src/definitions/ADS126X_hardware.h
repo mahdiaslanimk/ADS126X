@@ -26,4 +26,11 @@ void _ads126x_spi_rw(uint8_t buff[],uint8_t len);
 // wait for the desired milliseconds
 void _ads126x_delay(uint16_t ms);
 
+// get current time in milliseconds
+unsigned long _ads126x_millis();
+
+// attach/detach interrupt on a pin
+void _ads126x_attach_interrupt(uint8_t pin, void (*callback)(void), int mode);
+void _ads126x_detach_interrupt(uint8_t pin);
+
 #endif // define ADS126X_HARDWARE_H

@@ -18,6 +18,7 @@ class ADS126X {
     void begin(uint8_t chip_select);
     void begin(void);
     void setStartPin(uint8_t pin); // designate a pin connected to START
+    void setDRDYPin(uint8_t pin); // designate a pin connected to DRDY
 
     // All ADC Commands. Page 85
     //General Commands
@@ -30,6 +31,14 @@ class ADS126X {
     // Analog Read Functions
     int32_t readADC1(uint8_t pos_pin,uint8_t neg_pin);
     int32_t readADC2(uint8_t pos_pin,uint8_t neg_pin);
+    // DRDY-aware Read Functions
+    int32_t readADC1_DRDY(uint8_t pos_pin,uint8_t neg_pin);
+    int32_t readADC2_DRDY(uint8_t pos_pin,uint8_t neg_pin);
+    // DRDY Functions
+    bool isDataReady(void);
+    void setDRDYTimeout(unsigned long timeout_ms);
+    void enableInterruptMode(void);
+    void disableInterruptMode(void);
     // Calibration Functions
     void calibrateSysOffsetADC1(uint8_t shorted1,uint8_t shorted2);
     void calibrateGainADC1(uint8_t vcc_pin,uint8_t gnd_pin);
@@ -111,6 +120,11 @@ class ADS126X {
     uint8_t cs_pin; // chip select pin
     bool start_used = false;
     uint8_t start_pin; // start pin
+    bool drdy_used = false;
+    uint8_t drdy_pin; // data ready pin
+    volatile bool dataReady = false; // flag set by interrupt
+    unsigned long drdy_timeout_ms = 1000; // default timeout in milliseconds
+    bool interrupt_enabled = false; // track if interrupt mode is enabled
 
     ADS126X_STATUS_Type STATUS; // save last status and checksum values
     uint8_t CHECKSUM;
@@ -125,6 +139,10 @@ class ADS126X {
     uint8_t find_checksum(uint32_t val,uint8_t byt);
     uint8_t find_crc(uint32_t val,uint8_t byt);
     uint8_t msb_pos(uint64_t val); // returns the position of most significant bit
+    
+    // Static instance pointer for ISR callback
+    static ADS126X* _isr_instance;
+    static void _drdy_isr(void);
 };
 
 #endif // define ADS126X_H
